@@ -1,0 +1,6 @@
+config:
+  basic:
+    bootstrapServers: "b-2.awskafkatutorialcluste.of8l1q.c2.kafka.us-west-2.amazonaws.com:9092,b-3.awskafkatutorialcluste.of8l1q.c2.kafka.us-west-2.amazonaws.com:9092,b-1.awskafkatutorialcluste.of8l1q.c2.kafka.us-west-2.amazonaws.com:9092"
+  topic: "test-topic"
+consumer:
+  groupId: "test-consumer-group"
