@@ -1,0 +1,9 @@
+config:
+  basic:
+    bootstrapServers: "b-2.awskafkatutorialcluste.of8l1q.c2.kafka.us-west-2.amazonaws.com:9092,b-3.awskafkatutorialcluste.of8l1q.c2.kafka.us-west-2.amazonaws.com:9092,b-1.awskafkatutorialcluste.of8l1q.c2.kafka.us-west-2.amazonaws.com:9092"
+  secure:
+    bootstrapservers: "b-2.secure-msk-cluster.qdy45r.c2.kafka.us-west-2.amazonaws.com:9094,b-1.secure-msk-cluster.qdy45r.c2.kafka.us-west-2.amazonaws.com:9094"
+consumer:
+  unsecure-topic: "test-topic"
+  secure-topic: "test-secure-topic"
+  groupId: "test-consumer-group"

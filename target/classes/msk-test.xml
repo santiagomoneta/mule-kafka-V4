@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:Kafka="http://www.mulesoft.org/schema/mule/Kafka"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/http
+  http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+  http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-current.xsd
+	http://www.mulesoft.org/schema/mule/core
+	http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+	http://www.mulesoft.org/schema/mule/http
+	http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+	http://www.mulesoft.org/schema/mule/ee/core
+	http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+	http://www.mulesoft.org/schema/mule/kafka
+	http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+  <configuration-properties file="config.yaml">
+	</configuration-properties>
+  <http:listener-config name="HTTP_Listener_config"
+    doc:name="HTTP Listener config"  >
+  <http:listener-connection host="0.0.0.0" port="8085" />
+  </http:listener-config>
+	<kafka:producer-config name="msk_unsecure_producer" doc:name="Apache Kafka Producer configuration" doc:id="f779c0b4-cca9-4a51-9567-88375b1c3087" >
+		<kafka:producer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${config.basic.bootstrapServers}" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<kafka:consumer-config name="msk_unsecure_consumer" doc:name="Apache Kafka Consumer configuration" doc:id="6a0722f5-aa8d-497b-900c-bdfc7c3ce71e" >
+		<kafka:consumer-plaintext-connection groupId="${consumer.groupId}" >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${config.basic.bootstrapServers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				<kafka:topic-pattern value="${consumer.unsecure-topic}" />
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+	</kafka:consumer-config>
+	<kafka:producer-config name="msk_secure_producer" doc:name="Apache Kafka Producer configuration" doc:id="7765a5a8-af91-4bf5-bd5f-b14553e40b9f" >
+		<kafka:producer-plaintext-connection tlsContext="msk_tls_context" >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${config.secure.bootstrapservers}" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<kafka:consumer-config name="msk_secure_consumer" doc:name="Apache Kafka Consumer configuration" doc:id="54b804ac-e926-4f57-af76-1b53e4ed268f" >
+		<kafka:consumer-plaintext-connection groupId="${consumer.groupId}" tlsContext="msk_tls_context">
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${config.secure.bootstrapservers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				<kafka:topic-pattern value="${consumer.secure-topic}" />
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+	</kafka:consumer-config>
+	<tls:context name="msk_tls_context" doc:name="TLS Context" doc:id="e614b8b7-f9d8-4883-9af5-bdb08487e042" >
+		<tls:trust-store path="kafka.client.truststore.jks" password="changeit" type="jks" />
+		<tls:key-store type="pkcs12" path="kafka.client.keystore.p12" alias="mulesoft" keyPassword="mule123" password="mule123" />
+	</tls:context>
+	<flow name="Publish-message-on-demand" >
+		<http:listener doc:name="Push message endpoint" config-ref="HTTP_Listener_config" path="/pushMessage" />
+		<logger level="INFO" doc:name="Logger" message='#["The Message: " ++ payload.message ++ " is going to be published to the topic " ++ payload.topic]' />
+		<kafka:publish doc:name="Producer" doc:id="8062dd20-9b27-4188-a3e6-f8983c357727" topic="#[payload.topic]" key="#[now()]" config-ref="msk_unsecure_producer">
+			<kafka:message ><![CDATA[#[payload.message]]]></kafka:message>
+		</kafka:publish>
+		<set-payload value="Message successfully sent to Apache Kafka topic." doc:name="Push response builder" />
+	</flow>
+	<flow name="Listen-for-new-messages" doc:id="bf60d1cf-8094-45be-a37b-b6d26e6c52af" >
+		<kafka:message-listener doc:name="Message listener" doc:id="ff2f9eea-7456-4b87-87d9-c3cf831c61d7" config-ref="msk_unsecure_consumer"/>
+		<ee:transform doc:name="Transform Message" doc:id="f68215d3-ed75-44a9-8226-4ee06c2e87cf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" message='#["Message received: "++ payload]'/>
+	</flow>
+</mule>
